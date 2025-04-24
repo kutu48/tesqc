@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHADOW Inspection Dashboard</title>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #0077cc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #0077cc;
+      color: white;
+    }
+    tfoot td {
+      font-weight: bold;
+      background-color: #f1f1f1;
+    }
+    .filters {
+      margin-bottom: 20px;
+    }
+    .filters label, .filters select, .filters input {
+      margin-right: 10px;
+      padding: 5px;
+    }
+    .summary {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .export-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .export-button:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <h2>QC Inspection Dashboard</h2>
+  <div class="filters">
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate">
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate">
+    <label for="lineFilter">Line:</label>
+    <select id="lineFilter">
+      <option value="">All</option>
+    </select>
+    <label for="qcFilter">QC Name:</label>
+    <select id="qcFilter">
+      <option value="">All</option>
+    </select>
+    <button onclick="applyFilters()">Filter</button>
+  </div>
+
+  <button class="export-button" onclick="exportToExcel()">Export to Excel</button>
+
+  <table id="qcTable">
+    <thead>
+      <tr>
+        <th>Work Date</th>
+        <th>Emp Group</th>
+        <th>Prod No.</th>
+        <th>Style No.</th>
+        <th>Color</th>
+        <th>Output Qty</th>
+        <th>Pass Qty</th>
+        <th>Defect</th>
+        <th>RFT %</th>
+        <th>Reason Desc</th>
+        <th>Checked By</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">Total</td>
+        <td id="totalOutput">0</td>
+        <td id="totalPass">0</td>
+        <td id="totalDefect">0</td>
+        <td id="totalRFT">-</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+
+  <script>
+    let rawData = [];
+
+    fetch('https://opensheet.elk.sh/1OQiqtG9-NDDCmvJvmBjdUNGCiMXmL5vNqfp7Gf5h728/DATA')
+      .then(response => response.json())
+      .then(data => {
+        rawData = data;
+        populateDropdowns(data);
+        const todayData = filterDataByDate(data, new Date().toISOString().split('T')[0]);
+        renderTable(todayData);
+        initDataTable();
+      });
+
+    function populateDropdowns(data) {
+      const lineSet = new Set();
+      const qcSet = new Set();
+      data.forEach(row => {
+        lineSet.add(row.LINE);
+        qcSet.add(row["QC NAME"]);
+      });
+      const lineFilter = document.getElementById('lineFilter');
+      lineSet.forEach(line => {
+        const option = document.createElement('option');
+        option.value = line;
+        option.textContent = line;
+        lineFilter.appendChild(option);
+      });
+      const qcFilter = document.getElementById('qcFilter');
+      qcSet.forEach(qc => {
+        const option = document.createElement('option');
+        option.value = qc;
+        option.textContent = qc;
+        qcFilter.appendChild(option);
+      });
+    }
+
+    function filterDataByDate(data, date) {
+      return data.filter(row => row["Date time"].split(' ')[0] === date);
+    }
+
+    function applyFilters() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const line = document.getElementById('lineFilter').value;
+      const qc = document.getElementById('qcFilter').value;
+
+      let filteredData = rawData.filter(row => {
+        const rowDate = row["Date time"].split(' ')[0];
+        const afterStart = !startDate || rowDate >= startDate;
+        const beforeEnd = !endDate || rowDate <= endDate;
+        const matchLine = !line || row.LINE === line;
+        const matchQc = !qc || row["QC NAME"] === qc;
+        return afterStart && beforeEnd && matchLine && matchQc;
+      });
+
+      renderTable(filteredData);
+    }
+
+    function renderTable(data) {
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+      let totalOutput = 0, totalPass = 0, totalDefect = 0;
+
+      const reasons = Object.keys(data[0]).filter(key => {
+        return !["Date time", "LINE", "QC NAME", "KP", "STYLE", "COLOR", "SIZE", "CHECKED BY", "TOTAL INSPEKSI"].includes(key);
+      });
+
+      data.forEach(row => {
+        const date = row["Date time"].split(' ')[0];
+        const empGroup = row.LINE;
+        const prodNo = row.KP;
+        const styleNo = row.STYLE;
+        const color = row.COLOR;
+        const outputQty = parseInt(row["TOTAL INSPEKSI"]);
+
+        let defect = 0;
+        let reasonDesc = [];
+
+        reasons.forEach(reason => {
+          const val = parseInt(row[reason]) || 0;
+          if (val > 0) {
+            defect += val;
+            reasonDesc.push(`${reason}(${val})`);
+          }
+        });
+
+        const passQty = outputQty - defect;
+        const rft = outputQty ? ((passQty / outputQty) * 100).toFixed(2) : "0.00";
+        const checkedBy = row["CHECKED BY"] || "";
+
+        totalOutput += outputQty;
+        totalPass += passQty;
+        totalDefect += defect;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${date}</td>
+          <td>${empGroup}</td>
+          <td>${prodNo}</td>
+          <td>${styleNo}</td>
+          <td>${color}</td>
+          <td>${outputQty}</td>
+          <td>${passQty}</td>
+          <td>${defect}</td>
+          <td>${rft}</td>
+          <td>${reasonDesc.join('<br>')}</td>
+          <td>${checkedBy}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      const totalRFT = totalOutput ? ((totalPass / totalOutput) * 100).toFixed(2) : "0.00";
+
+      document.getElementById('totalOutput').textContent = totalOutput;
+      document.getElementById('totalPass').textContent = totalPass;
+      document.getElementById('totalDefect').textContent = totalDefect;
+      document.getElementById('totalRFT').textContent = totalRFT;
+    }
+
+    function initDataTable() {
+      $('#qcTable').DataTable({
+        paging: true,
+        pageLength: 10,
+        search: true,
+        ordering: true,
+        info: true
+      });
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById('qcTable');
+      const wb = XLSX.utils.table_to_book(table, { sheet: "QC Data" });
+      XLSX.writeFile(wb, "QC_Inspection_Report.xlsx");
+    }
+  </script>
+</body>
+</html>
