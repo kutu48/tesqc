@@ -165,7 +165,7 @@ function printSelectedBarcodes() {
 
   if (selected.length === 1) {
     const { nik, nama } = selected[0];
-    window.open(`cetak_qr.html?multi=false&nik=${encodeURIComponent(nik)}&nama=${encodeURIComponent(nama)}`, '_blank');
+    window.open(`/tesqc/shadow/cetak_qr.html?multi=false&nik=${encodeURIComponent(nik)}&nama=${encodeURIComponent(nama)}`, '_blank');
   } else {
     localStorage.setItem('selectedQRData', JSON.stringify(selected));
     window.open('cetak_qr.html?multi=true', '_blank');
@@ -175,3 +175,4 @@ function printSelectedBarcodes() {
 
 </body>
 </html>
+
