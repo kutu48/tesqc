@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Mekanik Maintenance</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      margin: 0; padding: 0;
+    }
+    .container {
+      max-width: 390px;
+      margin: 90px auto 0 auto;
+      background: #fff;
+      padding: 38px 28px 28px 28px;
+      border-radius: 12px;
+      box-shadow: 0 0 13px #2d2e5a22;
+    }
+    h2 {
+      text-align: center;
+      color: #00796b;
+      margin-bottom: 23px;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 15px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      box-sizing: border-box;
+      outline: none;
+    }
+    input:focus {
+      border: 1.7px solid #00796b;
+    }
+    button {
+      background: #00796b;
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      letter-spacing: 1px;
+      font-size: 1.1em;
+      transition: 0.25s;
+      margin-bottom: 0;
+    }
+    button:hover {
+      background: #009688;
+      cursor: pointer;
+    }
+    .error {
+      color: #e74c3c;
+      margin: 10px 0 0 0;
+      text-align: center;
+      font-size: 0.99em;
+      min-height: 24px;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .checkbox-container label {
+      margin-left: 9px;
+      font-size: 1rem;
+      color: #393939;
+    }
+    @media (max-width: 450px) {
+      .container { padding: 18px 3vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔧 Login Mekanik</h2>
+    <input type="text" id="username" placeholder="Username" autocomplete="username" />
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+    <div class="checkbox-container">
+      <input type="checkbox" id="rememberMe" />
+      <label for="rememberMe">Ingat saya</label>
+    </div>
+    <button onclick="login()">Login</button>
+    <div class="error" id="errorMsg"></div>
+  </div>
+
+<script>
+  // -- Ganti dengan sheet loginmu atau array sementara:
+  const SHEET_URL = "https://opensheet.elk.sh/1-oTfQ3GBepVxKqOGv3JCOIVegiEcMpFAZ-C5I4Il13w/login";
+
+  // Auto-fill remembered username
+window.onload = function() {
+  const rememberedUser = localStorage.getItem("rememberedUser");
+  if (rememberedUser) {
+    document.getElementById("username").value = rememberedUser;
+    document.getElementById("rememberMe").checked = true;
+  }
+  // HAPUS pengecekan & redirect otomatis ke home di sini!
+};
+
+
+  function login() {
+    const uname = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    const remember = document.getElementById("rememberMe").checked;
+    const errorMsg = document.getElementById("errorMsg");
+
+    if (!uname || !pass) {
+      errorMsg.textContent = "Username dan password wajib diisi!";
+      return;
+    }
+
+    fetch(SHEET_URL)
+      .then(response => response.json())
+      .then(data => {
+        // Sesuaikan field USERNAME & PASSWORD sesuai sheet/array login kamu
+        const user = data.find(u => u.USERNAME === uname && u.PASSWORD === pass);
+        if (user) {
+          localStorage.setItem("loggedInUser", uname);
+          if (remember) {
+            localStorage.setItem("rememberedUser", uname);
+          } else {
+            localStorage.removeItem("rememberedUser");
+          }
+          window.location.href = "home.html";
+        } else {
+          errorMsg.textContent = "❌ Username atau password salah.";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        errorMsg.textContent = "❌ Gagal mengambil data login.";
+      });
+  }
+</script>
+</body>
+</html>

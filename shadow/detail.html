@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Inspection</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 1000px;
+      margin: 0 auto;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      word-break: break-word;
+    }
+    .image-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .image-wrapper img {
+      max-width: 45%;
+      height: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .export-btn {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .export-btn:hover {
+      background-color: #005fa3;
+    }
+    @media print {
+      .export-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="detailSection">
+  <h2>Detail Inspection</h2>
+  <div id="detailContent">Loading...</div>
+  <button class="export-btn" onclick="exportToPDF()">Export to PDF</button>
+  <button class="export-btn" onclick="window.print()">Print</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+
+function renderDetail(data) {
+  let html = '<table>';
+  html += `<tr><td><strong>Work Date</strong></td><td>${data["Date time"]}</td></tr>`;
+  html += `<tr><td><strong>Line</strong></td><td>${data.LINE}</td></tr>`;
+  html += `<tr><td><strong>Prod No.</strong></td><td>${data.KP}</td></tr>`;
+  html += `<tr><td><strong>Style</strong></td><td>${data.STYLE}</td></tr>`;
+  html += `<tr><td><strong>Color</strong></td><td>${data.COLOR}</td></tr>`;
+  html += `<tr><td><strong>Defect Area</strong></td><td>${data["DEFECT AREA"] || '-'}</td></tr>`;
+  html += `<tr><td><strong>Checked By</strong></td><td>${data["CHECKED BY"] || '-'}</td></tr>`;
+  html += '</table>';
+
+  const images = [];
+  if (data.Picture) images.push(convertGoogleDriveImage(data.Picture));
+  if (data.Picture2) images.push(convertGoogleDriveImage(data.Picture2));
+  if (data.Picture3) images.push(convertGoogleDriveImage(data.Picture3));
+
+  if (images.length > 0) {
+    html += '<div class="image-wrapper">';
+    images.forEach(imgTag => {
+      html += imgTag;
+    });
+    html += '</div>';
+  } else {
+    html += '<p><em>No pictures provided.</em></p>';
+  }
+
+  document.getElementById('detailContent').innerHTML = html;
+}
+
+function convertGoogleDriveImage(link) {
+  const fileIdMatch = link.match(/[-\w]{25,}/);
+  if (fileIdMatch) {
+    const fileId = fileIdMatch[0];
+    return `<img src="https://drive.google.com/thumbnail?id=${fileId}" alt="Inspection Image">`;
+  }
+  return '<p>Invalid Google Drive link</p>';
+}
+
+async function exportToPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'pt', 'a4');
+  const section = document.getElementById('detailSection');
+  await html2canvas(section, { useCORS: true, allowTaint: true, scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Detail_Inspection.pdf');
+  });
+}
+
+// Render with fallback sample data
+document.addEventListener('DOMContentLoaded', () => {
+  const jsonData = new URLSearchParams(window.location.search).get('data');
+  if (jsonData) {
+    try {
+      const data = JSON.parse(decodeURIComponent(jsonData));
+      renderDetail(data);
+    } catch (e) {
+      renderDetail(sampleData);
+    }
+  } else {
+    renderDetail(sampleData);
+  }
+});
+</script>
+
+</body>
+</html>

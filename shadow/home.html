@@ -1,1 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Mekanik Maintenance Record</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1e1e2f;
+      color: #fff;
+    }
+    .intro {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #1e1e2f;
+      font-size: 35px;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: .2em solid orange;
+      width: 100%;
+      animation: typing 2s steps(40, end), blink-caret .75s step-end infinite;
+    }
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+    @keyframes blink-caret {
+      from, to { border-color: transparent }
+      50% { border-color: orange; }
+    }
+    .menu {
+      display: none;
+      height: 100vh;
+      background: linear-gradient(135deg, #00796b 30%, #b0b0b0 100%);
+      overflow-y: auto;
+    }
+    .container {
+      padding: 10% 5%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100%;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .container h1 {
+      font-size: 30px;
+      margin-bottom: 20px;
+      color: #fff;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    .container img {
+      max-width: 140px;
+      margin-bottom: 24px;
+      filter: brightness(0.9);
+    }
+    .container button {
+      display: flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.25);
+      color: #fff;
+      border: none;
+      padding: 15px 22px;
+      margin: 11px 0;
+      font-size: 18px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 2px 12px #2225a011;
+    }
+    .container button i {
+      margin-right: 15px;
+      font-size: 23px;
+      min-width: 30px;
+      text-align: center;
+    }
+    .container button:hover {
+      background-color: rgba(0, 0, 0, 0.45);
+      transform: scale(1.03);
+    }
+    .logout-btn {
+      background: #e74c3c !important;
+      margin-bottom: 18px !important;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+    }
+    .username-badge {
+      position: absolute;
+      top: 8px;
+      right: 14px;
+      background: #00796bcc;
+      color: #fff;
+      padding: 7px 17px 7px 13px;
+      border-radius: 24px 12px 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 2px 12px #2225a055;
+      display: flex;
+      align-items: center;
+      z-index: 3;
+      gap: 8px;
+    }
+    .username-badge i {
+      margin-right: 3px;
+      font-size: 17px;
+      opacity: 0.8;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding-top: 50px;
+      }
+      .container h1 {
+        font-size: 22px;
+      }
+      .container img {
+        max-width: 100px;
+        margin-bottom: 18px;
+      }
+      .container button {
+        font-size: 15px;
+        padding: 12px 12px;
+      }
+      .username-badge {
+        font-size: 13px;
+        padding: 6px 10px 6px 10px;
+        top: 3px;
+        right: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="intro" id="intro">
+  Log & History Maintenance Mesin
+</div>
+<div class="menu" id="menu">
+  <div class="container">
+    <span class="username-badge" id="usernameBadge" style="display:none">
+      <i class="fas fa-user-circle"></i>
+      <span id="usernameText"></span>
+    </span>
+    <button class="logout-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i>Logout
+    </button>
+    <h1>Mekanik Maintenance Record</h1>
+    <img src="file:///android_asset/maintenance.png" alt="Maintenance Icon">
+    <button onclick="window.location.href='today_report.html'"><i class="fas fa-chart-bar"></i>Today Maintenance Report</button>
+    <button onclick="window.location.href='logbook.html'"><i class="fas fa-book"></i>Logbook Mesin</button>
+    <button onclick="window.location.href='input.html'"><i class="fas fa-plus-circle"></i>Input Perawatan Baru</button>
+    <button onclick="window.location.href='schedule.html'"><i class="fas fa-calendar-alt"></i>Jadwal Preventive</button>
+    <button onclick="window.location.href='history.html'"><i class="fas fa-history"></i>History Breakdown</button>
+    <button onclick="window.location.href='sparepart.html'"><i class="fas fa-cogs"></i>Data Sparepart</button>
+    <button onclick="window.location.href='guide.pdf'"><i class="fas fa-book"></i>Panduan Penggunaan</button>
+  </div>
+</div>
 
+<script>
+  setTimeout(() => {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('menu').style.display = 'block';
+    // Tampilkan username kalau ada
+    const user = localStorage.getItem("loggedInUser");
+    if (user) {
+      document.getElementById("usernameText").textContent = user;
+      document.getElementById("usernameBadge").style.display = "flex";
+    } else {
+      document.getElementById("usernameBadge").style.display = "none";
+    }
+  }, 2000);
+
+  function logout() {
+    localStorage.removeItem("loggedInUser");
+    // Optionally reload page or stay
+    window.location.reload();
+  }
+</script>
+</body>
+</html>

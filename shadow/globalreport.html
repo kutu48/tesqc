@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard SHADOW Inspection</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      background: #f5f8fa;
+    }
+    h2, h3 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+      justify-content: center;
+    }
+    .charts-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .chart-container, .table-container {
+      flex: 1;
+      min-width: 300px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #0077cc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #0077cc;
+      color: white;
+    }
+    .export-button {
+      margin: 10px auto;
+      display: block;
+      padding: 8px 20px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .export-button:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Dashboard SHADOW Inspection</h2>
+
+<div class="filters">
+  <label>Start Date:</label><input type="date" id="startDate">
+  <label>End Date:</label><input type="date" id="endDate">
+  <label>Line:</label><select id="lineFilter"><option value="">All</option></select>
+  <button onclick="applyFilters()">Filter</button>
+</div>
+
+<div class="charts-summary">
+  <div class="chart-container">
+    <h3>Defect per Line</h3>
+    <canvas id="lineChart" height="200"></canvas>
+  </div>
+
+  <div class="table-container">
+    <h3>Top 10 Defect Reason</h3>
+    <table id="reasonSummary">
+      <thead>
+        <tr>
+          <th>Jenis Defect</th>
+          <th>Total Kasus</th>
+          <th>% dari Total Defect</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<button class="export-button" onclick="exportToExcel()">Export to Excel</button>
+<button class="export-button" onclick="exportToPDF()">Export to PDF</button>
+
+<table id="qcTable">
+  <thead>
+    <tr>
+      <th>Work Date</th>
+      <th>Line</th>
+      <th>Prod No.</th>
+      <th>Style</th>
+      <th>Color</th>
+      <th>Output Qty</th>
+      <th>Pass Qty</th>
+      <th>Defect</th>
+      <th>RFT %</th>
+      <th>Reason Desc</th>
+      <th>Defect Area</th>
+      <th>Detail</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="5">Total</td>
+      <td id="totalOutput">0</td>
+      <td id="totalPass">0</td>
+      <td id="totalDefect">0</td>
+      <td id="totalRFT">-</td>
+      <td colspan="3"></td>
+    </tr>
+  </tfoot>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+let rawData = [];
+let myLineChart = null;
+
+fetch('https://opensheet.elk.sh/1-oTfQ3GBepVxKqOGv3JCOIVegiEcMpFAZ-C5I4Il13w/DATA')
+  .then(res => res.json())
+  .then(data => {
+    rawData = data;
+    populateDropdowns(data);
+    renderTable(data);
+    initDataTable();
+  });
+  
+function initDataTable() {
+  $('#qcTable').DataTable({
+    paging: true,
+    pageLength: 10,
+    searching: true,
+    ordering: true,
+    lengthMenu: [5, 10, 25, 50, 100],
+    language: {
+      search: 'Search:',
+      lengthMenu: 'Show _MENU_ entries'
+    }
+  });
+}
+
+function populateDropdowns(data) {
+  const lineSet = new Set();
+  data.forEach(row => lineSet.add(row.LINE));
+  const lineFilter = document.getElementById('lineFilter');
+  lineSet.forEach(line => {
+    const opt = document.createElement('option');
+    opt.value = line;
+    opt.textContent = line;
+    lineFilter.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const line = document.getElementById('lineFilter').value;
+  const filtered = rawData.filter(row => {
+    const rowDate = row["Date time"].split(' ')[0];
+    return (!startDate || rowDate >= startDate) && (!endDate || rowDate <= endDate) &&
+           (!line || row.LINE === line);
+  });
+  renderTable(filtered);
+}
+
+function renderTable(data) {
+  const tableBody = document.getElementById('tableBody');
+  tableBody.innerHTML = '';
+  let totalOutput = 0, totalPass = 0, totalDefect = 0;
+  const reasons = Object.keys(data[0] || {}).filter(k => !["Date time", "LINE", "QC NAME", "KP", "STYLE", "COLOR", "SIZE", "CHECKED BY", "TOTAL INSPEKSI", "Picture", "Picture2", "Picture3"].includes(k));
+  let lineDefects = {}, reasonDefects = {};
+
+  data.forEach(row => {
+    const date = row["Date time"].split(' ')[0];
+    const outputQty = parseInt(row["TOTAL INSPEKSI"]) || 0;
+    let defect = 0;
+    let reasonDesc = [];
+    reasons.forEach(r => {
+      const val = parseInt(row[r]) || 0;
+      if (val > 0) {
+        defect += val;
+        reasonDesc.push(`${r}(${val})`);
+        reasonDefects[r] = (reasonDefects[r] || 0) + val;
+      }
+    });
+    const passQty = outputQty - defect;
+    const rft = outputQty ? ((passQty / outputQty) * 100).toFixed(2) : "0.00";
+    totalOutput += outputQty;
+    totalPass += passQty;
+    totalDefect += defect;
+    lineDefects[row.LINE] = (lineDefects[row.LINE] || 0) + defect;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${date}</td><td>${row.LINE}</td><td>${row.KP}</td><td>${row.STYLE}</td><td>${row.COLOR}</td>
+                    <td>${outputQty}</td><td>${passQty}</td><td>${defect}</td><td>${rft}</td><td>${reasonDesc.join('<br>')}</td>
+                    <td>${row["DEFECT AREA"] || '-'}</td>
+                    <td><a href="file:///android_asset/shadow/detail.html?data=${encodeURIComponent(JSON.stringify(row))}" target="_blank">Detail</a></td>`;
+    tableBody.appendChild(tr);
+  });
+
+  document.getElementById('totalOutput').textContent = totalOutput;
+  document.getElementById('totalPass').textContent = totalPass;
+  document.getElementById('totalDefect').textContent = totalDefect;
+  document.getElementById('totalRFT').textContent = totalOutput ? ((totalPass / totalOutput) * 100).toFixed(2) : "-";
+
+  renderSummaries(lineDefects, reasonDefects, totalDefect);
+}
+
+function renderSummaries(lineDefects, reasonDefects, totalDefect) {
+  const reasonBody = document.getElementById('reasonSummary').querySelector('tbody');
+  reasonBody.innerHTML = '';
+  const topReasons = Object.entries(reasonDefects).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  topReasons.forEach(([reason, count]) => {
+    const percentage = ((count / totalDefect) * 100).toFixed(2) + '%';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${reason}</td><td>${count}</td><td>${percentage}</td>`;
+    reasonBody.appendChild(tr);
+  });
+
+  renderLineChart(lineDefects);
+}
+
+function renderLineChart(lineDefects) {
+  if (myLineChart) {
+    myLineChart.destroy();
+  }
+  myLineChart = new Chart(document.getElementById('lineChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(lineDefects),
+      datasets: [{
+        label: 'Total Defect',
+        data: Object.values(lineDefects),
+        backgroundColor: 'rgba(54,162,235,0.5)'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+function exportToExcel() {
+  const wb = XLSX.utils.table_to_book(document.getElementById('qcTable'), { sheet: 'QC Inspection' });
+  XLSX.writeFile(wb, 'QC_Inspection_Report.xlsx');
+}
+
+function exportToPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('landscape', 'pt', 'a4');
+  const table = document.getElementById('qcTable');
+  html2canvas(table, { scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('QC_Inspection_Report.pdf');
+  });
+}
+</script>
+</body>
+</html>

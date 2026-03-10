@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Cetak QR</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .qr-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .qr-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 160px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .qr-item canvas {
+      width: 150px;
+      height: 150px;
+      display: block;
+      margin: 0 auto;
+    }
+    .label-nik {
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+      text-align: center;
+      width: 100%;
+      word-break: break-word;
+    }
+    .label-nama {
+      margin-top: 2px;
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      width: 100%;
+      word-break: break-word;
+    }
+    #btnContainer {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Cetak QR</h2>
+
+<div id="btnContainer">
+  <button id="downloadPdfBtn">Download PDF</button>
+  <button id="printPageBtn">Cetak Langsung</button>
+</div>
+
+<div class="qr-container" id="qrContainer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+function generateQRCode(id, nik, nama) {
+  const qrDiv = document.createElement('div');
+  qrDiv.classList.add('qr-item');
+
+  const qrCanvasDiv = document.createElement('div');
+  qrCanvasDiv.id = `qrcode-${id}`;
+
+  const labelNik = document.createElement('div');
+  labelNik.className = 'label-nik';
+  labelNik.textContent = nik;
+
+  const labelNama = document.createElement('div');
+  labelNama.className = 'label-nama';
+  labelNama.textContent = nama;
+
+  qrDiv.appendChild(qrCanvasDiv);
+  qrDiv.appendChild(labelNik);
+  qrDiv.appendChild(labelNama);
+  document.getElementById('qrContainer').appendChild(qrDiv);
+
+  // DIUBAH: Sekarang generate barcode dari NAMA, BUKAN NIK
+  new QRCode(document.getElementById(`qrcode-${id}`), {
+    text: nama,  // <-- GANTI di sini
+    width: 150,
+    height: 150
+  });
+}
+
+
+window.onload = function() {
+  const params = new URLSearchParams(window.location.search);
+  const multi = params.get('multi');
+
+  if (multi === 'true') {
+    const data = JSON.parse(localStorage.getItem('selectedQRData')) || [];
+    data.forEach((item, index) => {
+      generateQRCode(index, item.nik, item.nama || '');
+    });
+  } else {
+    const nik = params.get('nik') || 'NIK Kosong';
+    const nama = params.get('nama') || 'Nama/Jenis Kosong';
+    generateQRCode(0, nik, nama);
+  }
+};
+
+// Tombol Download PDF
+document.getElementById('downloadPdfBtn').addEventListener('click', async function() {
+  const qrItems = document.querySelectorAll('.qr-item');
+  const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+  let x = 10, y = 10;
+  let count = 0;
+
+  for (let i = 0; i < qrItems.length; i++) {
+    const canvas = await html2canvas(qrItems[i], { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    pdf.addImage(imgData, 'PNG', x, y, 60, 80);
+
+    x += 70;
+    count++;
+    if (count % 2 === 0) {
+      x = 10;
+      y += 90;
+    }
+    if (count % 8 === 0 && i !== qrItems.length - 1) {
+      pdf.addPage();
+      x = 10;
+      y = 10;
+    }
+  }
+
+  // LANGSUNG SAVE TANPA BLOB
+  pdf.save('QRCode_List.pdf');
+});
+
+
+// Tombol Cetak Langsung
+document.getElementById('printPageBtn').addEventListener('click', function() {
+  window.print();
+});
+</script>
+
+
+</body>
+</html>

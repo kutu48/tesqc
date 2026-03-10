@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Data Operator Bonding</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e2f;
+      color: white;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .form-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .form-inline input, .btn {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .btn {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .btn:hover {
+      background-color: #45a049;
+    }
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    table.dataTable {
+      color: black;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Data Operator NIK</h1>
+
+<div class="form-inline">
+  <input type="text" id="nik" placeholder="NIK">
+  <input type="text" id="nama" placeholder="Nama">
+  <button id="addBtn" class="btn">Tambah Data</button>
+  <button id="printSelected" class="btn">Cetak Barcode yang Dipilih</button>
+</div>
+
+<div class="table-container">
+  <table id="dataTable" class="display">
+    <thead>
+      <tr>
+        <th>Pilih</th>
+        <th>NIK</th>
+        <th>Nama</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const dataUrl = 'https://opensheet.elk.sh/1OQiqtG9-NDDCmvJvmBjdUNGCiMXmL5vNqfp7Gf5h728/NIK';
+const appScriptUrl = 'https://script.google.com/macros/s/AKfycbx44B_y_7lxLHdnBkRPei0MFpYH-umGSpJsJwKWhM4mmYV0S1l-4rtdMn31BgtHK-P5/exec';
+
+let table;
+
+$(document).ready(function() {
+  table = $('#dataTable').DataTable();
+  fetchData();
+  $('#addBtn').click(addData);
+  $('#printSelected').click(printSelectedBarcodes);
+});
+
+function fetchData() {
+  $.getJSON(dataUrl, function(data) {
+    table.clear().rows.add(data.map((row, idx) => [
+      `<input type="checkbox" class="selectRow" value="${row.NIK}">`,
+      row.NIK,
+      row.NAMA,
+      `<button onclick="printBarcode('${row.NIK}')">Cetak Barcode</button>
+       <button onclick="deleteRow(${idx+2})">Hapus</button>
+       <button onclick="editRow(${idx+2}, '${row.NIK}', '${row.NAMA}')">Edit</button>`
+    ])).draw();
+  }).fail(function() {
+    alert('Gagal ambil data dari OpenSheet!');
+  });
+}
+
+function addData() {
+  const nik = $('#nik').val();
+  const nama = $('#nama').val();
+  if (!nik || !nama) return alert('Isi semua kolom!');
+
+  $.post(appScriptUrl, { action: 'add', sheet: 'NIK', nik, nama }, function(response) {
+    alert(response);
+    fetchData();
+    $('#nik').val('');
+    $('#nama').val('');
+  }).fail(function() {
+    alert('Gagal tambah data!');
+  });
+}
+
+function deleteRow(row) {
+  if (!confirm('Yakin hapus data ini?')) return;
+  $.post(appScriptUrl, { action: 'delete', sheet: 'NIK', row }, function(response) {
+    alert(response);
+    fetchData();
+  }).fail(function() {
+    alert('Gagal hapus data!');
+  });
+}
+
+function editRow(row, oldNik, oldNama) {
+  const nik = prompt('Edit NIK:', oldNik);
+  const nama = prompt('Edit Nama:', oldNama);
+  if (nik && nama) {
+    $.post(appScriptUrl, { action: 'edit', sheet: 'NIK', row, nik, nama }, function(response) {
+      alert(response);
+      fetchData();
+    }).fail(function() {
+      alert('Gagal edit data!');
+    });
+  }
+}
+
+function printBarcode(nik) {
+  window.open(`cetak_qr.html?multi=false&nik=${encodeURIComponent(nik)}`, '_blank');
+}
+
+function printSelectedBarcodes() {
+  const selected = [];
+  $('#dataTable .selectRow:checked').each(function() {
+    const row = $(this).closest('tr');
+    const nik = row.find('td:eq(1)').text();
+    const nama = row.find('td:eq(2)').text();
+    selected.push({ nik: nik, nama: nama });
+  });
+
+  if (selected.length === 0) {
+    alert('Pilih minimal 1 data untuk cetak!');
+    return;
+  }
+
+  if (selected.length === 1) {
+    const { nik, nama } = selected[0];
+    window.open(`cetak_qr.html?multi=false&nik=${encodeURIComponent(nik)}&nama=${encodeURIComponent(nama)}`, '_blank');
+  } else {
+    localStorage.setItem('selectedQRData', JSON.stringify(selected));
+    window.open('cetak_qr.html?multi=true', '_blank');
+  }
+}
+</script>
+
+</body>
+</html>
