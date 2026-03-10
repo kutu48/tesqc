@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Defect Tracing</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #1e1e2f;
+      color: white;
+    }
+
+    .notice {
+      padding: 20px;
+      background: #e74c3c;
+      color: white;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .intro {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #1e1e2f;
+      font-size: 35px;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: .2em solid orange;
+      width: 100%;
+      animation: typing 2s steps(40, end), blink-caret .75s step-end infinite;
+    }
+
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+
+    @keyframes blink-caret {
+      from, to { border-color: transparent }
+      50% { border-color: orange; }
+    }
+
+    .menu {
+      display: none;
+      height: 100vh;
+      background: linear-gradient(135deg, #00b894, #b0b0b0);
+      overflow-y: auto;
+    }
+
+    .container {
+      padding: 10% 5%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .container h1 {
+      font-size: 30px;
+      margin-bottom: 20px;
+      color: #fff;
+      text-align: center;
+    }
+
+    .container img {
+      max-width: 150px;
+      margin-bottom: 20px;
+    }
+
+    .container button {
+      display: flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.3);
+      color: white;
+      border: none;
+      padding: 15px 20px;
+      margin: 10px;
+      font-size: 18px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background 0.3s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .container button i {
+      margin-right: 12px;
+      font-size: 24px;
+    }
+
+    .container button:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+
+
+<div class="intro" id="intro">
+  Real Time Defect Tracing
+</div>
+
+<div class="menu" id="menu">
+  <div class="container">
+    <h1>Real Time Defect Tracing</h1>
+    <img src="file:///android_asset/panca.png" alt="Seamseal Image">
+
+    <!-- Today Report Button -->
+    <button onclick="window.location.href='file:///android_asset/guest/guest.html'"><i class="fas fa-chart-bar"></i>Today Report (Guest)</button>
+
+    <button onclick="window.location.href='file:///android_asset/seamseal/seallogin.html'"><i class="fas fa-tools"></i>Seamseal</button>
+    <button onclick="window.location.href='file:///android_asset/bonding/bonlogin.html'"><i class="fas fa-tools"></i>Bonding</button>
+    <button onclick="alert('Middle Inspection selected')"><i class="fas fa-search"></i>Middle Inspection</button>
+    <button onclick="window.location.href='file:///android_asset/shadow/login.html'"><i class="fas fa-eye"></i>Shadow Inspection</button>
+    <button onclick="window.location.href='file:///android_asset/FCA/fcalogin.html'"><i class="fas fa-eye"></i>FCA Inspection</button>
+    <button onclick="window.location.href='file:///android_asset/Guide.pdf'"><i class="fas fa-book"></i>Cara Penggunaan</button>
+  </div>
+</div>
+
+
+
+<script>
+  setTimeout(() => {
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('menu').style.display = 'block';
+  }, 3500);
+</script>
+
+</body>
+</html>
