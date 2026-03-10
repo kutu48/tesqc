@@ -223,7 +223,7 @@ function renderTable(data) {
     tr.innerHTML = `<td>${date}</td><td>${row.LINE}</td><td>${row.KP}</td><td>${row.STYLE}</td><td>${row.COLOR}</td>
                     <td>${outputQty}</td><td>${passQty}</td><td>${defect}</td><td>${rft}</td><td>${reasonDesc.join('<br>')}</td>
                     <td>${row["DEFECT AREA"] || '-'}</td>
-                    <td><a href="/detail.html?data=${encodeURIComponent(JSON.stringify(row))}" target="_blank">Detail</a></td>`;
+                    <td><a href="/tesqc/detail.html?data=${encodeURIComponent(JSON.stringify(row))}" target="_blank">Detail</a></td>`;
     tableBody.appendChild(tr);
   });
 
